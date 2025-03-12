@@ -1,0 +1,39 @@
+auto-lipsync/
+├── app/                  # Main application code
+│   ├── __init__.py
+│   ├── main.py           # Application entry point
+│   ├── gui/              # GUI components
+│   │   ├── __init__.py
+│   │   ├── main_window.py
+│   │   ├── preview_panel.py
+│   │   ├── styles.py
+│   │   ├── timeline_panel.py
+│   │   ├── toolbar.py
+│   │   ├── status_bar.py
+│   │   ├── project_panel.py
+│   │   ├── language_panel.py...
+│   ├── core/             # Core processing logic
+│   │   ├── __init__.py
+│   │   ├── video_analyzer.py
+│   │   ├── audio_processor.py
+│   │   ├── sync_engine.py
+│   │   └── premiere_automation.py
+│   ├── utils/            # Utility functions
+│   │   ├── __init__.py
+│   │   ├── config.py
+│   │   ├── file_manager.py
+│   │   └── logger.py
+│   └── assets/           # Application assets
+│       ├── icons/
+│       ├── styles/
+│       └── templates/     # Premiere templates
+├── scripts/              # Scripts for automation
+│   ├── premiere_scripts/  # ExtendScript files
+│   └── setup.py          # Environment setup
+├── tests/                # Test cases
+│   ├── __init__.py
+│   ├── test_video_analyzer.py
+│   ├── test_audio_processor.py
+│   └── test_sync_engine.py
+├── requirements.txt      # Dependencies
+├── README.md

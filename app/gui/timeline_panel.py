@@ -17,8 +17,8 @@ class TimeLineTrack(QWidget):
     def __init__(self, name, color, video=None, audio_path=None):
         super().__init__()
         self.name = name
-        self.video = video
-        self.audio_path = audio_path
+        self.video = video if video else None
+        self.audio_path = audio_path if audio_path else None
         self.color = color
         self.duration = video.duration if video else None
         self.setFixedHeight(25)
@@ -35,31 +35,36 @@ class TimeLineTrack(QWidget):
             self.sync_button.clicked.connect(self.sync_audio_with_video)
 
 
-    def sync_audio_with_video(self):
-        """Chama o mecanismo de lip-sync para sincronizar áudio e vídeo"""
-        print("Sincronizando áudio com o vídeo...")
-        if not self.video:
-            print("Nenhum vídeo presente para sincronizar.")
-            return
+    def sync_audio_with_video(self, output_path):
+        """ Sincroniza áudio e vídeo utilizando um script externo de lipsync. """
+        video_path = self.video.path
+        audio_path = self.audio_path
+        print(f"Sincronizando {audio_path} com {video_path}...")
 
-        if not self.audio_path:
-            print("Nenhum áudio selecionado.")
-            return
+        ROOT_DIR = Path(__file__).resolve().parent.parent.parent  # Voltar 3 níveis (de app.gui.timeline_panel para a raiz)
 
-        print(f"Sincronizando {self.audio_path} com {self.video}...")
+        inference_script = ROOT_DIR / "Wav2Lip" / "inference.py"
+        model_path = ROOT_DIR / "app" / "core" / "wav2lip_gan.pth"
+
+        if not inference_script.exists():
+            print(f"Erro: Script de inferência não encontrado em {inference_script}")
+            exit(1)
+
+        if not model_path.exists():
+            print(f"Erro: Modelo não encontrado em {model_path}")
+            exit(1)
         
-        model_path = os.path.abspath("app/core/wav2lip_gan.pth")
-        inference_script = os.path.abspath("inference.py")
         command = [
-            "python", inference_script,
-            "--checkpoint_path", model_path,
-            "--face", self.video,
-            "--audio", self.audio_path
+            sys.executable, str(inference_script),
+            "--checkpoint_path", str(model_path),
+            "--face", video_path,
+            "--audio", audio_path,
+            "--outfile", str(output_path)
         ]
 
         try:
             subprocess.run(command, check=True)
-            print("Lip sync completed successfully!")
+            print(f"Lip sync concluído! Arquivo salvo em: {output_path}")
         except subprocess.CalledProcessError as e:
             print(f"Erro ao sincronizar lipsync: {e}")
         except FileNotFoundError:
@@ -96,6 +101,7 @@ class TimelinePanel(QWidget):
         self.group_layout.addWidget(self.add_audio_button)
 
         self.add_sync_all_button = QPushButton("Sync All Audios")
+        self.add_sync_all_button.clicked.connect(self.sync_multiple_audios_with_video)
         self.group_layout.addWidget(self.add_sync_all_button)
         """ Add sync All function
         self.add_sync_all_button.clicked.connect(self.)
@@ -127,6 +133,44 @@ class TimelinePanel(QWidget):
         self.tracks.append(track)
         self.layout.insertWidget(len(self.tracks), track)
         self.audios.append(audio_path)
+
+    def sync_multiple_audios_with_video(self, video_path, output_path):
+        """ Sincroniza áudio e vídeo utilizando um script externo de lipsync. """
+        print(f"Sincronizando audios com {video_path}...")
+
+        ROOT_DIR = Path(__file__).resolve().parent.parent.parent  # Voltar 3 níveis (de app.gui.timeline_panel para a raiz)
+
+        inference_script = ROOT_DIR / "Wav2Lip" / "inference.py"
+        model_path = ROOT_DIR / "app" / "core" / "wav2lip_gan.pth"
+
+        if not inference_script.exists():
+            print(f"Erro: Script de inferência não encontrado em {inference_script}")
+            exit(1)
+
+        if not model_path.exists():
+            print(f"Erro: Modelo não encontrado em {model_path}")
+            exit(1)
+        
+        for i, audio in enumerate(self.audios):
+            audio_path = audio.path
+            output_path = Path(output_path) / f"synced_{i+1}.mp4"
+            command = [
+                sys.executable, str(inference_script),
+                "--checkpoint_path", str(model_path),
+                "--face", video_path,
+                "--audio", audio_path,
+                "--outfile", str(output_path)
+            ]
+
+            try:
+                subprocess.run(command, check=True)
+                print(f"Lip sync concluído para {audio_path}! Arquivo salvo em: {output_path}")
+            except subprocess.CalledProcessError as e:
+                print(f"Erro ao sincronizar com audio {audio.path}, erro: {e}")
+            except FileNotFoundError:
+                print("Erro: Certifique-se de que o Python está no PATH e os arquivos existem.")
+        
+        print("Sincronização concluída para todos os áudios.")
         
     def get_audio_duration(self, file_path):
             try:

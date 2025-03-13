@@ -140,7 +140,6 @@ class MainWindow(QMainWindow):
 
             self.status_bar.set_status(f"Project created: {name} ({self.current_project.project_file_path})")
             return True
-
         except Exception as e:
             print(f"Erro ao criar o projeto: {e}")
             QMessageBox.critical(self, "Erro", f"Não foi possível criar o projeto: {str(e)}")

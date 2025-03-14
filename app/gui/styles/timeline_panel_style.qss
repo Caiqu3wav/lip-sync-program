@@ -1,0 +1,40 @@
+QWidget {
+    font-family: Arial, sans-serif;
+    background-color: #ffffff;
+}
+
+QGroupBox {
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+QPushButton {
+    padding: 10px;
+    border-radius: 3px;
+    border: none;
+    color: white;
+}
+
+QPushButton#addAudioButton {
+    background-color: #2196F3;
+}
+QPushButton#addAudioButton:hover {
+    background-color: #1976D2;
+}
+
+QPushButton#syncAllAudiosButton {
+    background-color: #FF9800;
+}
+QPushButton#syncAllAudiosButton:hover {
+    background-color: #FB8C00;
+}
+
+TimeLineTrack {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 5px;
+    font-size: 14px;
+    color: #333333;
+}

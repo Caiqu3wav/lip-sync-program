@@ -129,19 +129,25 @@ class TimelinePanel(QWidget):
         self.layout.insertWidget(0, video_track)
 
     def _add_track(self, name, color, duration, audio_path):
-        track = TimeLineTrack(name, color, video=self.video, audios=[audio_path])
+        track = TimeLineTrack(name, color, video=self.video, audios=audio_path)
         self.tracks.append(track)
         self.layout.insertWidget(len(self.tracks), track)
         self.audios.append(audio_path)
 
-    def sync_multiple_audios_with_video(self, video_path, output_path):
+    def sync_multiple_audios_with_video(self):
         """ Sincroniza áudio e vídeo utilizando um script externo de lipsync. """
         print(f"Sincronizando audios com {video_path}...")
+
+        if not self.video:
+            print("Erro: Nenhum vídeo selecionado.")
+            return
+
+        print(f"Sincronizando todos os áudios com {self.video.path}...")
 
         ROOT_DIR = Path(__file__).resolve().parent.parent.parent  # Voltar 3 níveis (de app.gui.timeline_panel para a raiz)
 
         inference_script = ROOT_DIR / "Wav2Lip" / "inference.py"
-        model_path = ROOT_DIR / "app" / "core" / "wav2lip_gan.pth"
+        model_path = ROOT_DIR / "app" / "core" / "wav2lip.pth"
 
         if not inference_script.exists():
             print(f"Erro: Script de inferência não encontrado em {inference_script}")
@@ -150,23 +156,33 @@ class TimelinePanel(QWidget):
         if not model_path.exists():
             print(f"Erro: Modelo não encontrado em {model_path}")
             exit(1)
+
+        selected_dir = QFileDialog.getExistingDirectory(self, "Selecionar Diretório de Saída", str(output_dir))
         
-        for i, audio in enumerate(self.audios):
-            audio_path = audio.path
-            output_path = Path(output_path) / f"synced_{i+1}.mp4"
+        if not selected_dir:
+            print("Erro: Nenhum diretório de saída selecionado.")
+            return
+
+        # Verifica se o diretório existe, se não existir, cria
+        if not os.path.exists(selected_dir):
+            os.makedirs(selected_dir)
+            print(f"O diretório {selected_dir} foi criado.")
+
+        for i, audio_path in enumerate(self.audios):
+            output_audio_path = Path(selected_dir) / f"synced_audio_{i+1}.mp4"
             command = [
                 sys.executable, str(inference_script),
                 "--checkpoint_path", str(model_path),
-                "--face", video_path,
+                "--face", self.video.path,
                 "--audio", audio_path,
-                "--outfile", str(output_path)
+                "--outfile", str(output_audio_path)
             ]
 
             try:
                 subprocess.run(command, check=True)
-                print(f"Lip sync concluído para {audio_path}! Arquivo salvo em: {output_path}")
+                print(f"Lip sync concluído para {audio_path}! Arquivo salvo em: {output_audio_path}")
             except subprocess.CalledProcessError as e:
-                print(f"Erro ao sincronizar com audio {audio.path}, erro: {e}")
+                print(f"Erro ao sincronizar com audio {audio_path}, erro: {e}")
             except FileNotFoundError:
                 print("Erro: Certifique-se de que o Python está no PATH e os arquivos existem.")
         
@@ -221,9 +237,15 @@ class TimelinePanel(QWidget):
 
         self.update()
     
+def load_style(sheet_file):
+    if not sheet_file.exists():
+        print(f"Arquivo de estilo não encontrado: {sheet_file}")
+        return ""
     
-
-
+    with open(str(sheet_file), "r") as f:
+        style = f.read()
+        return style
+    
 if __name__ == "__main__":
     import sys
     import os
@@ -231,6 +253,9 @@ if __name__ == "__main__":
     from PyQt5.QtCore import QFileInfo
     
     app = QApplication(sys.argv)
+
+    style_sheet_path = Path(__file__).parent / "timeline_panel_style.qss"
+    app.setStyleSheet(load_style(style_sheet_path))
 
     def sync_audio_with_video_override(video_path, audio_path, output_path):
         """ Sincroniza áudio e vídeo utilizando um script externo de lipsync. """
@@ -269,8 +294,14 @@ if __name__ == "__main__":
     def get_audio_duration(file_path):
         """ Obtém a duração do áudio utilizando ffmpeg. """
         try:
+            ffmpeg_path = r"C:\ffmpeg\bin"
+            if not os.path.exists(ffmpeg_path):
+                ffmpeg_path - r"C:\ffmpeg" 
+            elif not os.path.exists(ffmpeg_path):
+                ffmpeg_path = QFileDialog.getOpenFileName(None, "Selecione o Executável do FFmpeg", "", "Executáveis (*.exe)")[0]
+
             result = subprocess.run(
-                ["ffmpeg", "-i", file_path, "-f", "null", "-"],
+                [ffmpeg_path, "-i", file_path, "-f", "null", "-"],
                 stderr=subprocess.PIPE,
                 text=True,
                 encoding="utf-8",
@@ -321,4 +352,4 @@ if __name__ == "__main__":
     # Sincronizar áudio e vídeo
     sync_audio_with_video_override(video_path, audio_path, output_video_path)
 
-    sys.exit()
+    sys.exit(app.exec())
